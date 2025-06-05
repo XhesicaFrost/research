@@ -217,6 +217,37 @@ def main():
     input_file = "/path/to/your/answer_file.json"  # 修改输入文件路径
     process_judge_file(input_file)
 ```
+### 6. [`baseline.py`](answer.py) - 简单的对比示例
+
+**功能描述：**
+- 基于问题和关键词的回答
+- 优先使用Qwen3-0.6B模型，支持多种备选模型
+- 智能答案提取，处理模型特殊输出格式
+
+**主要特性：**
+- 先进的Qwen模型集成
+- 智能提示词工程
+- 特殊标记处理（如`<think>`标记）
+- 多层次的答案质量控制
+- 基于规则的备用答案提取
+
+**输入文件格式：**
+```json
+{"question": "问题", "answer": "标准答案", ...}
+```
+
+**输出文件格式：**
+```json
+{"question": "问题", "answer": "标准答案", "pred_answer": "预测答案", ...}
+```
+
+**更改输入文件路径：**
+```python
+def main():
+    input_file = "/path/to/your/summary_file.json"  # 修改输入文件路径
+    process_summary_file(input_file)
+```
+
 
 ## 完整工作流程
 
@@ -276,6 +307,12 @@ python judge.py
 2. sshleifer/distilbart-cnn-12-6
 3. t5-small
 4. google/pegasus-xsum
+
+**baseline.py模型优先级：**
+1. Qwen/Qwen3-0.6B
+2. meta-llama/Llama-3.2-1B
+3. distilbert-base-cased-distilled-squad
+4. gpt2
 
 ### 硬件配置
 - **GPU推荐：** 支持CUDA的GPU（8GB+ 显存）

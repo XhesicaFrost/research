@@ -193,7 +193,7 @@ def main():
     """
     主函数
     """
-    input_file = "/home/xhesica/research/outputs/20250604_extract_20250604_answer_train_limit100.json"
+    input_file = "/home/xhesica/research/outputs/20250605_extract_20250605_answer_answer_train_limit1000.json"
     process_extraction_file(input_file)
 
 if __name__ == "__main__":

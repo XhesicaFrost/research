@@ -412,7 +412,7 @@ def main():
     input_file = "/home/xhesica/research/data/train_processed/answer_train.json"
     output_dir = "/home/xhesica/research/outputs"
     
-    process_qa_file(input_file, output_dir,limit=10)
+    process_qa_file(input_file, output_dir,limit=1000)
 
 if __name__ == "__main__":
     main()

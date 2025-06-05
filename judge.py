@@ -506,7 +506,7 @@ def main():
     """
     主函数
     """
-    input_file = "/home/xhesica/research/outputs/20250605_answer_20250604_summary_20250604_extract_20250604_answer_train_limit100.json"
+    input_file = "/home/xhesica/research/outputs/20250605_baseline_answer_answer_train_p6000_q1000.json"
     process_judge_file(input_file)
 
 if __name__ == "__main__":

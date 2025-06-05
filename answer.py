@@ -10,8 +10,8 @@ def load_qa_model():
     """
     # 尝试不同的模型，优先使用Qwen3-0.6B
     models_to_try = [
-        "Qwen/Qwen3-0.6B",  # 主要使用的Qwen模型
-        "meta-llama/Llama-3.2-1B",  # 备选模型
+        #"Qwen/Qwen3-0.6B",  # 主要使用的Qwen模型
+        #"meta-llama/Llama-3.2-1B",  # 备选模型
         "distilbert-base-cased-distilled-squad",  # 轻量级问答模型
         "gpt2",  # 最后备选
     ]
@@ -605,7 +605,7 @@ def main():
     """
     主函数
     """
-    input_file = "/home/xhesica/research/outputs/20250604_summary_20250604_extract_20250604_answer_train_limit100.json"
+    input_file = "/home/xhesica/research/outputs/20250605_summary_20250605_extract_20250605_answer_answer_train_limit1000.json"
     process_summary_file(input_file)
 
 if __name__ == "__main__":

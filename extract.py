@@ -36,10 +36,10 @@ def extract_related_passages(qa_list, passages, model, top_k=5):
 
 def main(
     passage_file="/home/xhesica/research/data/train_processed/passage_train.json",
-    qa_file="/home/xhesica/research/outputs/20250604_answer_train_limit100.json",
+    qa_file="/home/xhesica/research/outputs/20250605_answer_answer_train_limit1000.json",
     output_dir="/home/xhesica/research/outputs",
-    passage_limit=600,
-    top_k=5
+    passage_limit=6000,
+    top_k=6
 ):
     print("加载passage...")
     passages = load_passages(passage_file, passage_limit)
