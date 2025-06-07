@@ -300,10 +300,10 @@ def calculate_scores(question, answer, pred_answer, semantic_models):
     
     # 最终综合得分 (包含AI评分)
     composite_score = (
-        exact_score * 0.25 +
-        partial_score * 0.25 +
+        exact_score * 0.15 +
+        partial_score * 0.15 +
         semantic_score * 0.15 +
-        ai_semantic_avg * 0.35  # AI模型评分权重较高
+        ai_semantic_avg * 0.55  # AI模型评分权重较高
     )
     
     return {
@@ -506,7 +506,7 @@ def main():
     """
     主函数
     """
-    input_file = "/home/xhesica/research/outputs/20250605_baseline_answer_answer_train_p6000_q1000.json"
+    input_file = "/home/xhesica/research/outputs/20250607_baseline_answer_answer_train_p11000_q2000.json"
     process_judge_file(input_file)
 
 if __name__ == "__main__":

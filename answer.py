@@ -6,14 +6,32 @@ import torch
 
 def load_qa_model():
     """
-    加载用于问答的模型
+    加载用于问答的模型 - 更新版模型列表
     """
-    # 尝试不同的模型，优先使用Qwen3-0.6B
+    # 按优先级排序的模型列表，专门针对问答任务优化
     models_to_try = [
-        #"Qwen/Qwen3-0.6B",  # 主要使用的Qwen模型
-        #"meta-llama/Llama-3.2-1B",  # 备选模型
-        "distilbert-base-cased-distilled-squad",  # 轻量级问答模型
-        "gpt2",  # 最后备选
+        "Qwen/Qwen2.5-0.5B-Instruct",  # Qwen指令模型，适合问答
+        # 指令微调模型（最适合问答）
+        #"microsoft/DialoGPT-medium",           # 对话模型，擅长回答问题
+        #"microsoft/DialoGPT-small",            # 轻量版对话模型
+        
+        # 专门的问答模型
+        #"distilbert-base-cased-distilled-squad",  # 专门训练的问答模型
+        "bert-large-uncased-whole-word-masking-finetuned-squad",  # BERT问答模型
+        
+        # 文本生成模型（适合开放域问答）
+        "facebook/opt-350m",                   # OPT模型，问答能力较好
+        "EleutherAI/gpt-neo-125M",            # GPT-Neo，小型但有效
+        "EleutherAI/gpt-neo-1.3B",            # 更大的GPT-Neo（如果资源允许）
+        
+        # 通用文本生成模型
+        "gpt2-medium",                        # GPT2中等版本
+        "gpt2",                               # 最基础的备选
+        
+        # 高端模型（需要更多资源，注释掉）
+        #"Qwen/Qwen2.5-0.5B-Instruct",        # Qwen指令模型
+        #"meta-llama/Llama-3.2-1B-Instruct",  # Llama指令模型
+        #"microsoft/phi-2",                    # 微软Phi模型
     ]
     
     for model_name in models_to_try:
@@ -26,7 +44,8 @@ def load_qa_model():
                     "text-generation",
                     model=model_name,
                     device=0 if torch.cuda.is_available() else -1,
-                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
+                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                    trust_remote_code=True  # Qwen模型需要这个参数
                 )
                 print(f"成功加载Qwen模型: {model_name}")
                 return qa_pipeline, model_name
@@ -42,7 +61,9 @@ def load_qa_model():
                 print(f"成功加载Llama模型: {model_name}")
                 return qa_pipeline, model_name
             
-            elif "distilbert" in model_name.lower() or "bert" in model_name.lower():
+            elif ("distilbert" in model_name.lower() or 
+                  "bert" in model_name.lower() or 
+                  "squad" in model_name.lower()):
                 # 使用专门的问答模型
                 qa_pipeline = pipeline(
                     "question-answering",
@@ -50,6 +71,17 @@ def load_qa_model():
                     device=0 if torch.cuda.is_available() else -1
                 )
                 print(f"成功加载问答模型: {model_name}")
+                return qa_pipeline, model_name
+            
+            elif "dialofpt" in model_name.lower() or "DialoGPT" in model_name:
+                # 修复DialoGPT的检测逻辑
+                qa_pipeline = pipeline(
+                    "text-generation",
+                    model=model_name,
+                    device=0 if torch.cuda.is_available() else -1,
+                    pad_token_id=50256  # DialoGPT的特殊设置
+                )
+                print(f"成功加载对话模型: {model_name}")
                 return qa_pipeline, model_name
             
             else:
@@ -68,6 +100,54 @@ def load_qa_model():
     
     print("所有模型都加载失败！")
     return None, None
+
+def generate_answer_with_dialofpt(question, summary, qa_pipeline):
+    """
+    使用DialoGPT生成答案（对话式）
+    """
+    try:
+        # DialoGPT专门的对话格式
+        conversation = f"User: Based on this context: {summary[:300]}... Answer this question: {question}\nBot:"
+        
+        result = qa_pipeline(
+            conversation,
+            max_new_tokens=25,  # 限制长度
+            num_return_sequences=1,
+            temperature=0.7,
+            do_sample=True,
+            pad_token_id=50256,
+            eos_token_id=50256
+        )
+        
+        generated_text = result[0]['generated_text']
+        
+        # 提取Bot的回答
+        if "Bot:" in generated_text:
+            answer = generated_text.split("Bot:")[-1].strip()
+        else:
+            answer = generated_text.replace(conversation, "").strip()
+        
+        # 清理DialoGPT的回答
+        answer = answer.split('\n')[0].strip()
+        
+        # DialoGPT可能生成对话式回答，需要提取关键信息
+        if answer.lower().startswith(("i think", "i believe", "the answer is")):
+            # 提取"答案是..."后面的部分
+            if "answer is" in answer.lower():
+                answer = answer.lower().split("answer is")[-1].strip()
+            elif "it's" in answer.lower():
+                answer = answer.lower().split("it's")[-1].strip()
+        
+        # 限制长度
+        words = answer.split()
+        if len(words) > 8:
+            answer = " ".join(words[:8])
+        
+        return answer.strip() if answer.strip() else extract_simple_answer(question, summary)
+        
+    except Exception as e:
+        print(f"DialoGPT生成答案时出错: {e}")
+        return extract_simple_answer(question, summary)
 
 def generate_answer_with_qwen(question, summary, qa_pipeline):
     """
@@ -386,6 +466,8 @@ def generate_answer(question, summary, qa_pipeline, model_name):
             return generate_answer_with_llama(question, summary, qa_pipeline)
         elif "distilbert" in model_name.lower() or "bert" in model_name.lower():
             return generate_answer_with_bert(question, summary, qa_pipeline)
+        elif "dialofpt" in model_name.lower() or "DialoGPT" in model_name:
+            return generate_answer_with_dialofpt(question, summary, qa_pipeline)
         else:
             return generate_answer_traditional(question, summary, qa_pipeline)
             
@@ -468,7 +550,7 @@ def generate_answer_traditional(question, summary, qa_pipeline):
         prompt = f"Context: {summary}\nQuestion: {question}\nAnswer:"
         result = qa_pipeline(
             prompt,
-            max_length=len(prompt.split()) + 20,
+             max_new_tokens=30,
             num_return_sequences=1,
             temperature=0.5,
             do_sample=True,
@@ -605,7 +687,7 @@ def main():
     """
     主函数
     """
-    input_file = "/home/xhesica/research/outputs/20250605_summary_20250605_extract_20250605_answer_answer_train_limit1000.json"
+    input_file = "/home/xhesica/research/outputs/20250607_summary_20250607_extract_20250606_answer_answer_train_limit2000.json"
     process_summary_file(input_file)
 
 if __name__ == "__main__":

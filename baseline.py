@@ -8,12 +8,14 @@ def load_qa_model():
     """
     加载用于问答的模型
     """
-    # 尝试不同的模型，优先使用Qwen3-0.6B
     models_to_try = [
-        #"Qwen/Qwen3-0.6B",  # 主要使用的Qwen模型
-        #"meta-llama/Llama-3.2-1B",  # 备选模型
-        "distilbert-base-cased-distilled-squad",  # 轻量级问答模型
-        "gpt2",  # 最后备选
+        "Qwen/Qwen2.5-0.5B-Instruct",  # Qwen2.5的问答模型
+        #"Qwen/Qwen3-0.6B",                    # 优秀的问答模型
+        #"meta-llama/Llama-3.2-1B",           # 高质量生成模型
+        "facebook/opt-350m",                  # OPT模型，更适合问答
+        "EleutherAI/gpt-neo-125M",           # GPT-Neo，问答能力更好
+        "gpt2-medium",                       # GPT2 medium版本
+        "gpt2",                              # 最后备选
     ]
     
     for model_name in models_to_try:
@@ -372,7 +374,7 @@ def generate_baseline_answer(question, passages, qa_pipeline, model_name):
     
     try:
         # 选择最相关的passages
-        relevant_passages = select_relevant_passages(question, passages, top_k=10)
+        relevant_passages = select_relevant_passages(question, passages, top_k=5)
         
         if not relevant_passages:
             return "No relevant passages found"
@@ -533,8 +535,8 @@ def main():
     output_dir = "/home/xhesica/research/outputs"
     
     # 可以在这里修改限制参数
-    passage_limit = 6000  # 限制加载1000个passages，设为None表示无限制
-    question_limit = 1000   # 限制处理50个问题，设为None表示无限制
+    passage_limit = 11000  # 限制加载1000个passages，设为None表示无限制
+    question_limit = 2000   # 限制处理50个问题，设为None表示无限制
     
     print(f"配置信息:")
     print(f"- Passage限制: {passage_limit if passage_limit else '无限制'}")

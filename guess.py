@@ -28,10 +28,12 @@ def load_qa_model():
     """加载用于问答的预训练模型"""
     # 使用更适合问答的模型，按优先级排序
     models_to_try = [
-        "Qwen/Qwen3-0.6B",                    # 优秀的问答模型
-        "meta-llama/Llama-3.2-1B",           # 高质量生成模型
-        "microsoft/DialoGPT-large",          # 升级到large版本
-        "distilgpt2",                        # 轻量级但更稳定
+        "Qwen/Qwen2.5-0.5B-Instruct",
+        #"Qwen/Qwen3-0.6B",                    # 优秀的问答模型
+        #"meta-llama/Llama-3.2-1B",           # 高质量生成模型
+        "facebook/opt-350m",                  # OPT模型，更适合问答
+        "EleutherAI/gpt-neo-125M",           # GPT-Neo，问答能力更好
+        "gpt2-medium",                       # GPT2 medium版本
         "gpt2",                              # 最后备选
     ]
     
@@ -84,14 +86,14 @@ def load_qa_model():
 def generate_answer_traditional(question, tokenizer, model):
     """使用传统模型生成答案 - 改进版"""
     try:
-        # 简化prompt，避免模型困惑
-        prompt = f"Question: {question}\nAnswer:"
+        # 修正prompt格式，让模型生成答案和解释
+        prompt = f"Question: {question}\nAnswer: "
         inputs = tokenizer.encode(prompt, return_tensors="pt")
         
         with torch.no_grad():
             outputs = model.generate(
                 inputs,
-                max_length=inputs.shape[1] + 50,  # 适中的长度
+                max_length=inputs.shape[1] + 100,  # 增加长度以容纳解释
                 num_return_sequences=1,
                 temperature=0.7,  # 降低温度获得更稳定的输出
                 do_sample=True,
@@ -105,29 +107,40 @@ def generate_answer_traditional(question, tokenizer, model):
         generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
         
         # 提取答案部分
-        if "Answer:" in generated_text:
+        if "Answer with brief explanation:" in generated_text:
+            answer = generated_text.split("Answer with brief explanation:")[-1].strip()
+        elif "Answer:" in generated_text:
             answer = generated_text.split("Answer:")[-1].strip()
         else:
             answer = generated_text.replace(prompt, "").strip()
         
-        # 清理答案
-        answer = answer.split('\n')[0].strip()  # 只取第一行
-        answer = answer.split('.')[0].strip()   # 去掉句号后的内容
+        # 保留完整的答案和解释，只做基本清理
+        if answer:
+            # 按句子分割，保留前几句作为答案和解释
+            sentences = answer.split('.')
+            if len(sentences) > 1:
+                # 保留前2-3句作为答案和简短解释
+                answer = '. '.join(sentences[:3]).strip()
+                if not answer.endswith('.'):
+                    answer += '.'
+            else:
+                # 如果只有一句话，保留完整内容
+                answer = sentences[0].strip()
         
         # 过滤无意义的输出
         if len(answer) < 2 or not any(c.isalpha() for c in answer):
-            return "Unable to generate meaningful answer"
+            return ""
         
-        # 限制长度
+        # 限制总长度但保留解释
         words = answer.split()
-        if len(words) > 20:
-            answer = " ".join(words[:20])
+        if len(words) > 30:
+            answer = " ".join(words[:30]) + "..."
             
-        return answer if answer else "No clear answer available"
+        return answer if answer else ""
         
     except Exception as e:
         print(f"传统模型生成答案时出错: {e}")
-        return "Unable to generate answer"
+        return ""
 
 def generate_answer_with_llama(question, generator):
     """使用Llama模型生成答案 - 改进版"""
@@ -412,7 +425,7 @@ def main():
     input_file = "/home/xhesica/research/data/train_processed/answer_train.json"
     output_dir = "/home/xhesica/research/outputs"
     
-    process_qa_file(input_file, output_dir,limit=1000)
+    process_qa_file(input_file, output_dir,limit=2000)
 
 if __name__ == "__main__":
     main()
